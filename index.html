@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>プロンプト辞書ツール</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --radius: 8px;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 1.5rem;
+            color: var(--text);
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: var(--text);
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 8px;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .row {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: var(--radius);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            background-color: transparent;
+            color: var(--danger);
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+
+        .btn-danger:hover {
+            background-color: #fee2e2;
+        }
+
+        .btn-add {
+            background-color: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .btn-add:hover {
+            background-color: var(--border);
+        }
+
+        .btn-copy {
+            background-color: var(--success);
+            color: white;
+            width: 100%;
+            margin-top: 10px;
+            padding: 12px;
+        }
+
+        .btn-copy:hover {
+            opacity: 0.9;
+        }
+
+        /* Dictionary List */
+        .search-box {
+            margin-bottom: 16px;
+        }
+
+        .dict-list {
+            list-style: none;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+        }
+
+        .dict-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .dict-item:last-child {
+            border-bottom: none;
+        }
+
+        .dict-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .dict-content {
+            flex-grow: 1;
+        }
+
+        .dict-jp {
+            font-weight: bold;
+            display: block;
+        }
+
+        .dict-en {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+
+        .dict-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Selected Prompt Area */
+        .selected-area {
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prompt-output {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-family: monospace;
+            font-size: 1rem;
+            resize: none;
+            margin-bottom: 12px;
+            background-color: #f8fafc;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            min-height: 40px;
+            padding: 8px;
+            border: 1px dashed var(--border);
+            border-radius: var(--radius);
+            align-items: center;
+        }
+
+        .tag {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #bae6fd;
+        }
+
+        .tag-remove {
+            cursor: pointer;
+            font-weight: bold;
+            color: #0284c7;
+        }
+
+        .tag-remove:hover {
+            color: var(--danger);
+        }
+
+        .empty-msg {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            text-align: center;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--text);
+            color: white;
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>プロンプト辞書ツール</h1>
+
+    <div class="container">
+        <!-- Left Column: Dictionary Management -->
+        <div class="column">
+            <div class="card" style="margin-bottom: 24px;">
+                <h2>新規登録</h2>
+                <div class="row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="inputJp">日本語</label>
+                        <input type="text" id="inputJp" placeholder="例：銀色">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="inputEn">英語</label>
+                        <input type="text" id="inputEn" placeholder="例：silver">
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="addDictionaryItem()">辞書に登録</button>
+            </div>
+
+            <div class="card">
+                <h2>辞書一覧</h2>
+                <div class="search-box">
+                    <input type="text" id="searchBox" placeholder="日本語・英語で検索..." oninput="renderDictionary()">
+                </div>
+                <ul class="dict-list" id="dictList">
+                    <!-- Items will be injected here -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Column: Prompt Builder -->
+        <div class="column">
+            <div class="card selected-area">
+                <h2>選択中のプロンプト</h2>
+                <div class="tags-container" id="tagsContainer">
+                    <span class="empty-msg">辞書から単語を追加してください</span>
+                </div>
+                
+                <label>出力結果</label>
+                <textarea class="prompt-output" id="outputArea" readonly></textarea>
+                
+                <button class="btn-copy" onclick="copyToClipboard()">クリップボードにコピー</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">コピーしました！</div>
+
+    <script>
+        // State
+        let dictionary = [];
+        let selectedItems = [];
+
+        // DOM Elements
+        const inputJp = document.getElementById('inputJp');
+        const inputEn = document.getElementById('inputEn');
+        const dictListEl = document.getElementById('dictList');
+        const searchBox = document.getElementById('searchBox');
+        const tagsContainer = document.getElementById('tagsContainer');
+        const outputArea = document.getElementById('outputArea');
+        const toast = document.getElementById('toast');
+
+        // Initialize
+        window.onload = () => {
+            loadFromStorage();
+            renderDictionary();
+            renderSelected();
+        };
+
+        // --- Dictionary Logic ---
+
+        function addDictionaryItem() {
+            const jp = inputJp.value.trim();
+            const en = inputEn.value.trim();
+
+            if (!jp || !en) {
+                alert("日本語と英語の両方を入力してください。");
+                return;
+            }
+
+            // Check duplicate
+            const exists = dictionary.some(item => item.jp === jp && item.en === en);
+            if (exists) {
+                alert("すでに登録されている項目です。");
+                return;
+            }
+
+            const newItem = {
+                id: Date.now(),
+                jp: jp,
+                en: en
+            };
+
+            dictionary.push(newItem);
+            saveToStorage();
+            
+            // Clear inputs
+            inputJp.value = '';
+            inputEn.value = '';
+            inputJp.focus();
+
+            renderDictionary();
+        }
+
+        function deleteDictionaryItem(id) {
+            if(!confirm("この辞書項目を削除しますか？")) return;
+            
+            dictionary = dictionary.filter(item => item.id !== id);
+            saveToStorage();
+            renderDictionary();
+        }
+
+        function addToSelection(id) {
+            const item = dictionary.find(i => i.id === id);
+            if (item) {
+                selectedItems.push({ ...item, uniqueId: Date.now() }); // uniqueId to allow duplicates if needed, or just use index
+                renderSelected();
+            }
+        }
+
+        function removeFromSelection(index) {
+            selectedItems.splice(index, 1);
+            renderSelected();
+        }
+
+        // --- Rendering ---
+
+        function renderDictionary() {
+            const query = searchBox.value.toLowerCase();
+            dictListEl.innerHTML = '';
+
+            const filtered = dictionary.filter(item => 
+                item.jp.toLowerCase().includes(query) || 
+                item.en.toLowerCase().includes(query)
+            );
+
+            if (filtered.length === 0) {
+                dictListEl.innerHTML = '<li class="dict-item"><span class="empty-msg">登録された単語がありません</span></li>';
+                return;
+            }
+
+            filtered.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'dict-item';
+                li.innerHTML = `
+                    <div class="dict-content">
+                        <span class="dict-jp">${escapeHtml(item.jp)}</span>
+                        <span class="dict-en">${escapeHtml(item.en)}</span>
+                    </div>
+                    <div class="dict-actions">
+                        <button class="btn-add" onclick="addToSelection(${item.id})">追加</button>
+                        <button class="btn-danger" onclick="deleteDictionaryItem(${item.id})">削除</button>
+                    </div>
+                `;
+                dictListEl.appendChild(li);
+            });
+        }
+
+        function renderSelected() {
+            tagsContainer.innerHTML = '';
+            
+            if (selectedItems.length === 0) {
+                tagsContainer.innerHTML = '<span class="empty-msg">辞書から単語を追加してください</span>';
+                outputArea.value = '';
+                return;
+            }
+
+            selectedItems.forEach((item, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `
+                    ${escapeHtml(item.en)}
+                    <span class="tag-remove" onclick="removeFromSelection(${index})">×</span>
+                `;
+                tagsContainer.appendChild(tag);
+            });
+
+            updateOutput();
+        }
+
+        function updateOutput() {
+            const promptText = selectedItems.map(item => item.en).join(', ');
+            outputArea.value = promptText;
+        }
+
+        // --- Utilities ---
+
+        function saveToStorage() {
+            localStorage.setItem('promptDict', JSON.stringify(dictionary));
+        }
+
+        function loadFromStorage() {
+            const stored = localStorage.getItem('promptDict');
+            if (stored) {
+                try {
+                    dictionary = JSON.parse(stored);
+                } catch (e) {
+                    console.error("Failed to parse storage", e);
+                    dictionary = [];
+                }
+            }
+        }
+
+        function copyToClipboard() {
+            if (!outputArea.value) return;
+            
+            navigator.clipboard.writeText(outputArea.value).then(() => {
+                showToast();
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('コピーに失敗しました');
+            });
+        }
+
+        function showToast() {
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
