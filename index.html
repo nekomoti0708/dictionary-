@@ -403,13 +403,17 @@
         function addToSelection(id) {
             const item = dictionary.find(i => i.id === id);
             if (item) {
-                selectedItems.push({ ...item, uniqueId: Date.now() }); // uniqueId to allow duplicates if needed, or just use index
+                // Add a unique ID to the selection instance so we can remove specific instances even if words are duplicated
+                selectedItems.push({ 
+                    ...item, 
+                    instanceId: Date.now() + Math.random() 
+                });
                 renderSelected();
             }
         }
 
-        function removeFromSelection(index) {
-            selectedItems.splice(index, 1);
+        function removeFromSelection(instanceId) {
+            selectedItems = selectedItems.filter(item => item.instanceId !== instanceId);
             renderSelected();
         }
 
@@ -455,12 +459,13 @@
                 return;
             }
 
-            selectedItems.forEach((item, index) => {
+            selectedItems.forEach((item) => {
                 const tag = document.createElement('div');
                 tag.className = 'tag';
+                // Use instanceId for removal to avoid removing wrong duplicates
                 tag.innerHTML = `
                     ${escapeHtml(item.en)}
-                    <span class="tag-remove" onclick="removeFromSelection(${index})">×</span>
+                    <span class="tag-remove" onclick="removeFromSelection(${item.instanceId})">×</span>
                 `;
                 tagsContainer.appendChild(tag);
             });
@@ -469,6 +474,7 @@
         }
 
         function updateOutput() {
+            // Join with comma and space strictly
             const promptText = selectedItems.map(item => item.en).join(', ');
             outputArea.value = promptText;
         }
